@@ -92,14 +92,14 @@ function loadVideo() {
 
     startCameraWithDevice("");
 
-    // function drawLine(begin, end, color) {
-    //   canvas.beginPath();
-    //   canvas.moveTo(begin.x, begin.y);
-    //   canvas.lineTo(end.x, end.y);
-    //   canvas.lineWidth = 4;
-    //   canvas.strokeStyle = color;
-    //   canvas.stroke();
-    // }
+   function drawLine(begin, end, color) {
+      canvas.beginPath();
+      canvas.moveTo(begin.x, begin.y);
+      canvas.lineTo(end.x, end.y);
+      canvas.lineWidth = 4;
+      canvas.strokeStyle = color;
+      canvas.stroke();
+   }
     
     function tick() {
       if (video.readyState === video.HAVE_ENOUGH_DATA) {
@@ -118,12 +118,10 @@ function loadVideo() {
           outputData.parentElement.hidden = false;
           outputData.innerText = code.error;
         } else if(code.format) {
-          /*//TODO: expose detected code coords and draw them
           drawLine(code.location.topLeftCorner, code.location.topRightCorner, "#FF3B58");
           drawLine(code.location.topRightCorner, code.location.bottomRightCorner, "#FF3B58");
           drawLine(code.location.bottomRightCorner, code.location.bottomLeftCorner, "#FF3B58");
           drawLine(code.location.bottomLeftCorner, code.location.topLeftCorner, "#FF3B58");
-          */
           outputMessage.hidden = true;
           outputData.parentElement.hidden = false;
           outputData.innerText = code.text;
