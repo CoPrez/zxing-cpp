@@ -118,10 +118,10 @@ function loadVideo() {
           outputData.parentElement.hidden = false;
           outputData.innerText = code.error;
         } else if(code.format) {
-          drawLine(code.location.topLeftCorner, code.location.topRightCorner, "#FF3B58");
-          drawLine(code.location.topRightCorner, code.location.bottomRightCorner, "#FF3B58");
-          drawLine(code.location.bottomRightCorner, code.location.bottomLeftCorner, "#FF3B58");
-          drawLine(code.location.bottomLeftCorner, code.location.topLeftCorner, "#FF3B58");
+          drawLine(code.position.topLeft, code.position.topRight, "#FF3B58");
+          drawLine(code.position.topRight, code.position.bottomRight, "#FF3B58");
+          drawLine(code.position.bottomRight, code.position.bottomLeft, "#FF3B58");
+          drawLine(code.position.bottomLeft, code.position.topLeft, "#FF3B58");
           outputMessage.hidden = true;
           outputData.parentElement.hidden = false;
           outputData.innerText = code.text;
