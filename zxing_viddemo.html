@@ -76,10 +76,9 @@ function loadVideo() {
     }
 
     var cameraStarted = false;
-    function startCameraWithDevice(cameraFacing) {
+    function startCameraWithDevice(deviceId) {
       stopCurentCamera();
-      var facingMode = cameraFacing ? { exact: cameraFacing } : "environment";
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode, width: {min: 1280}, height: {min: 720}, focusMode: "continuous" } }).then(function(stream) {
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: {min: 1280}, height: {min: 720} }, focusMode: "continuous", deviceId: deviceId}).then(function(stream) {
         currentStream = stream;
         video.srcObject = stream;
         video.setAttribute("playsinline", true); // required to tell iOS safari we don't want fullscreen
