@@ -52,9 +52,12 @@ function loadVideo() {
 
     navigator.mediaDevices.enumerateDevices().then(devices => {
       devices.forEach((device) => {
-        var option = document.createElement("option");
-        option.value = device.label;
-        cameraSelect.appendChild(option);
+        if (device.kind ==="videoinput"){
+          var option = document.createElement("option");
+          option.value = device.deviceId;
+          option.innerHTML = device.label;
+          cameraSelect.appendChild(option);
+          }
       })
     })
 
@@ -143,9 +146,7 @@ This is a simple demo of WebAssembly build (using Emcripten) of <a href="https:/
 <p>
   Camera:
   <select id="camera_select">
-    <option value=""></option>
-    <option value="environment">Rear</option>
-    <option value="user">Front</option>
+    <option value="">Default</option>
   </select>
   <br/><br/>
 
