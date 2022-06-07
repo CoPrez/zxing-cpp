@@ -50,6 +50,14 @@ function loadVideo() {
     var outputData = document.getElementById("outputData");
     var cameraSelect = document.getElementById("camera_select");
 
+    navigator.mediaDevices.enumerateDevices().then(devices => {
+      devices.forEach((device) => {
+        var option = document.createElement("option");
+        option.value = device.label;
+        cameraSelect.appendChild(option);
+      })
+    })
+
     cameraSelect.onchange = function() {
         startCameraWithDevice(cameraSelect.value);
     };
