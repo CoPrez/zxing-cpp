@@ -1,7 +1,7 @@
 <html>
 <head>
 <title>ZXing in Javascript demo</title>
-<script src="zxing_reader.js"></script>
+<script src="zxing_reader.js" crossorigin="anonymous"></script>
 <script src="base64.js"></script>
 <script>
 
@@ -32,9 +32,14 @@ function scanBarcode(canvasElement, format) {
     if (zxing != null) {
         var buffer = zxing._malloc(sourceBuffer.byteLength);
         zxing.HEAPU8.set(sourceBuffer, buffer);
-        var result = zxing.readBarcodeFromPixmap(buffer, imgWidth, imgHeight, true, format);
+        var results = zxing.readBarcodesFromPixmap(buffer, imgWidth, imgHeight, true, true, format);
         zxing._free(buffer);
-        return result;
+
+        if (results.size() > 0) {
+          return results.get(0);
+        }
+        
+        return { error: "No barcodes detected" };
     } else {
         return { error: "ZXing not yet initialized" };
     }
