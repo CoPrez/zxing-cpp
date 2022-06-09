@@ -22,7 +22,7 @@ ZXing().then(function(value) {
     zxing = value;
 });
 
-function scanBarcode(canvasElement, format) {
+function scanBarcode(canvasElement, format, tryHard, downscale) {
 
     var imgWidth = canvasElement.width;
     var imgHeight = canvasElement.height;
@@ -32,12 +32,14 @@ function scanBarcode(canvasElement, format) {
     if (zxing != null) {
         var buffer = zxing._malloc(sourceBuffer.byteLength);
         zxing.HEAPU8.set(sourceBuffer, buffer);
-        var results = zxing.readBarcodesFromPixmap(buffer, imgWidth, imgHeight, true, true, format);
+        var results = zxing.readBarcodesFromPixmap(buffer, imgWidth, imgHeight, tryHard, downscale, format);
         zxing._free(buffer);
 
         if (results.size() > 0) {
-          return results.get(0);
+          var parsedResults = new Array(results.size()).fill(0).map((_, id) => results.get(id));
+          return parsedResults;
         }
+
         
         return { error: "No barcodes detected" };
     } else {
@@ -54,6 +56,8 @@ function loadVideo() {
     var outputMessage = document.getElementById("outputMessage");
     var outputData = document.getElementById("outputData");
     var cameraSelect = document.getElementById("camera_select");
+    var tryHardCheckbox = document.getElementById("tryHard");
+    var downscaleCheckbox = document.getElementById("downscale");
 
     navigator.mediaDevices.enumerateDevices().then(devices => {
       devices.forEach((device) => {
@@ -116,20 +120,24 @@ function loadVideo() {
         canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
         //var imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
 
-        var format = document.getElementById("scan_format").value;
-        var code = scanBarcode(canvasElement, format);
+        var format = [...document.getElementById("scan_format").options].filter(option => option.selected).map(option => option.value).join(", ")
+
+        var code = scanBarcode(canvasElement, format, tryHardCheckbox.checked, downscaleCheckbox.checked);
         if (code.error) {
           outputMessage.hidden = true;
           outputData.parentElement.hidden = false;
           outputData.innerText = code.error;
-        } else if(code.format) {
-          drawLine(code.position.topLeft, code.position.topRight, "#FF3B58");
-          drawLine(code.position.topRight, code.position.bottomRight, "#FF3B58");
-          drawLine(code.position.bottomRight, code.position.bottomLeft, "#FF3B58");
-          drawLine(code.position.bottomLeft, code.position.topLeft, "#FF3B58");
+        } else if(code.length >  0) {
+          code.forEach(scanResult => {
+            drawLine(scanResult.position.topLeft, scanResult.position.topRight, "#FF3B58");
+            drawLine(scanResult.position.topRight, scanResult.position.bottomRight, "#FF3B58");
+            drawLine(scanResult.position.bottomRight, scanResult.position.bottomLeft, "#FF3B58");
+            drawLine(scanResult.position.bottomLeft, scanResult.position.topLeft, "#FF3B58");
+          })
+          
           outputMessage.hidden = true;
           outputData.parentElement.hidden = false;
-          outputData.innerText = code.text;
+          outputData.innerText = code.map(result => result.text).join(", ");
         } else {
           outputMessage.hidden = false;
           outputData.parentElement.hidden = true;
@@ -153,22 +161,25 @@ This is a simple demo of WebAssembly build (using Emcripten) of <a href="https:/
   <br/><br/>
 
   Scan Format:
-  <select id="scan_format">
-    <option value="" selected="">Any</option>
-    <option value="AZTEC">AZTEC</option>
-    <option value="CODABAR">CODABAR</option>
-    <option value="CODE_39">CODE_39</option>
-    <option value="CODE_93">CODE_93</option>
-    <option value="CODE_128">CODE_128</option>
-    <option value="DATA_MATRIX">DATA_MATRIX</option>
-    <option value="EAN_8">EAN_8</option>
-    <option value="EAN_13">EAN_13</option>
-    <option value="ITF">ITF</option>
-    <option value="PDF_417">PDF_417</option>
-    <option value="QR_CODE">QR_CODE</option>
-    <option value="UPC_A">UPC_A</option>
-    <option value="UPC_E">UPC_E</option>
+  <select id="scan_format" multiple>
+    <option value="AZTEC" selected>AZTEC</option>
+    <option value="CODABAR" selected>CODABAR</option>
+    <option value="CODE_39" selected>CODE_39</option>
+    <option value="CODE_93" selected>CODE_93</option>
+    <option value="CODE_128" selected>CODE_128</option>
+    <option value="DATA_MATRIX" selected>DATA_MATRIX</option>
+    <option value="EAN_8" selected>EAN_8</option>
+    <option value="EAN_13" selected>EAN_13</option>
+    <option value="ITF" selected>ITF</option>
+    <option value="PDF_417" selected>PDF_417</option>
+    <option value="QR_CODE" selected>QR_CODE</option>
+    <option value="UPC_A" selected>UPC_A</option>
+    <option value="UPC_E" selected>UPC_E</option>
   </select>
+  <br/>
+  <input type="checkbox" id="tryHard" /><label for="tryHard">Try Hard</label>
+  <br/>
+  <input type="checkbox" id="downscale" checked /><label for="downscale">Downscale Image</label>
   <br/><br/>
 
   <canvas id="canvas" hidden></canvas>
