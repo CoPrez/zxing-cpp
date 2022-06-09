@@ -5,6 +5,11 @@
   <script src="zxing_reader.js" crossorigin="anonymous"></script>
   <script src="base64.js"></script>
   <script>
+    var resolutions = [
+      {width: 720, height: 480},
+      {width: 1280, height: 720},
+      {width: 1920, height: 1080}
+    ]
 
     // https://stackoverflow.com/a/21797381
     // https://stackoverflow.com/a/7261048
@@ -23,25 +28,13 @@
       zxing = value;
     });
 
-    var barcodeDetector = undefined;
-    if (!('BarcodeDetector' in window)) {
-      console.log('Barcode Detector is not supported by this browser.');
-    } else {
-      console.log('Barcode Detector supported!');
-
-      // create new detector
-      barcodeDetector = new BarcodeDetector();
-    }
-
-    async function scanBarcode(canvasElement, format, tryHard, downscale, useBarcodeDetector) {
-
-      var imgWidth = canvasElement.width;
-      var imgHeight = canvasElement.height;
-      var imageData = canvasElement.getContext('2d').getImageData(0, 0, imgWidth, imgHeight);
+    async function scanBarcode(imageData, formats, tryHard, downscale, useBarcodeDetector) {
       var sourceBuffer = imageData.data;
 
-      if (barcodeDetector && useBarcodeDetector) {
-        var barcodes = await barcodeDetector.detect(imageData);
+      if (useBarcodeDetector) {
+        // create new detector
+        var barcodeDetector = new BarcodeDetector({formats: formats});
+        var barcodes = await barcodeDetector.detect(imageData, formats);
         if (barcodes && barcodes.length > 0) {
           var translatedBarcodes = barcodes.map(barcode =>  ({
             fromDetector: true,
@@ -55,12 +48,13 @@
           }));
           return translatedBarcodes;
         } else {
+          //debugImg.src = canvasElement.toDataURL("image/png");
           return { error: "No barcodes detected" };
         }
       } else if (zxing != null) {
         var buffer = zxing._malloc(sourceBuffer.byteLength);
         zxing.HEAPU8.set(sourceBuffer, buffer);
-        var results = zxing.readBarcodesFromPixmap(buffer, imgWidth, imgHeight, tryHard, downscale, format);
+        var results = zxing.readBarcodesFromPixmap(buffer, imageData.width, imageData.height, tryHard, downscale, formats.join(", "));
         zxing._free(buffer);
 
         if (results.size() > 0) {
@@ -84,12 +78,14 @@
       var outputMessage = document.getElementById("outputMessage");
       var outputData = document.getElementById("outputData");
       var cameraSelect = document.getElementById("camera_select");
+      var resolutionSelect = document.getElementById("resolutionSelect");
       var tryHardCheckbox = document.getElementById("tryHard");
       var downscaleCheckbox = document.getElementById("downscale");
       var useBarcodeDetectorCheckbox = document.getElementById("useBarcodeDetector");
       var useBarcodeDetectorDiv = document.getElementById("useBarcodeDetectorDiv");
+      var debugImg = document.getElementById("debugImg");
 
-      if (!barcodeDetector) {
+      if (!('BarcodeDetector' in window)) {
         // the barcodeDetector API isn't supported hide those elements
         useBarcodeDetectorCheckbox.removeAttribute("checked");
         useBarcodeDetectorDiv.hidden = true;
@@ -105,6 +101,10 @@
           }
         })
       })
+
+      resolutionSelect.onchange = function () {
+        startCameraWithDevice(cameraSelect.value);
+      };
 
       cameraSelect.onchange = function () {
         startCameraWithDevice(cameraSelect.value);
@@ -123,7 +123,12 @@
       var cameraStarted = false;
       function startCameraWithDevice(deviceId) {
         stopCurentCamera();
-        navigator.mediaDevices.getUserMedia({ video: { deviceId: deviceId, facingMode: deviceId ? undefined : "environment", width: { min: 1280 }, height: { min: 720 }, focusMode: "continuous" } }).then(function (stream) {
+
+        if (deviceId === "none") {
+          return;
+        }
+
+        navigator.mediaDevices.getUserMedia({ video: { deviceId: deviceId, facingMode: deviceId ? undefined : "environment", width: { min: resolutions[resolutionSelect.value].width }, height: { min: resolutions[resolutionSelect.value].height }, focusMode: "continuous" } }).then(function (stream) {
           currentStream = stream;
           video.srcObject = stream;
           video.setAttribute("playsinline", true); // required to tell iOS safari we don't want fullscreen
@@ -146,26 +151,28 @@
         canvas.stroke();
       }
 
-      function tick() {
+      var cachedBarcodeResults = {error: "No results yet"};
+
+      async function tick() {
         if (video.readyState === video.HAVE_ENOUGH_DATA) {
           canvasElement.hidden = false;
           outputContainer.hidden = false;
 
-          //var imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
+          var formats = [...document.getElementById("scan_format").options].filter(option => option.selected).map(option => option.value.toLowerCase());
 
-          var format = [...document.getElementById("scan_format").options].filter(option => option.selected).map(option => option.value).join(", ")
-
-          scanBarcode(canvasElement, format, tryHardCheckbox.checked, downscaleCheckbox.checked, useBarcodeDetectorCheckbox.checked).then(results => {
-            canvasElement.height = video.videoHeight;
+          canvasElement.height = video.videoHeight;
           canvasElement.width = video.videoWidth;
           canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
-          
-            if (results.error) {
+
+          var imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
+          var scanPromise = scanBarcode(imageData, formats, tryHardCheckbox.checked, downscaleCheckbox.checked, useBarcodeDetectorCheckbox.checked);
+
+          if (cachedBarcodeResults.error) {
               outputMessage.hidden = true;
               outputData.parentElement.hidden = false;
-              outputData.innerText = results.error;
-            } else if (results.length > 0) {
-              results.forEach(scanResult => {
+              outputData.innerText = cachedBarcodeResults.error;
+            } else if (cachedBarcodeResults.length > 0) {
+              cachedBarcodeResults.forEach(scanResult => {
                 drawLine(scanResult.position.topLeft, scanResult.position.topRight, scanResult.fromDetector ? "#3AFF47" : "#FF3B58");
                 drawLine(scanResult.position.topRight, scanResult.position.bottomRight, scanResult.fromDetector ? "#3AFF47" : "#FF3B58");
                 drawLine(scanResult.position.bottomRight, scanResult.position.bottomLeft, scanResult.fromDetector ? "#3AFF47" : "#FF3B58");
@@ -174,13 +181,17 @@
 
               outputMessage.hidden = true;
               outputData.parentElement.hidden = false;
-              outputData.innerText = results.map(result => result.text).join(", ");
+              outputData.innerText = cachedBarcodeResults.map(result => result.text).join(", ");
             } else {
               outputMessage.hidden = false;
               outputData.parentElement.hidden = true;
             }
-            requestAnimationFrame(tick);
-          });
+
+            scanPromise.then(results => {
+              cachedBarcodeResults = results;
+              requestAnimationFrame(tick);
+            })
+            
         } else {
           requestAnimationFrame(tick);
         }
@@ -199,6 +210,15 @@
     Camera:
     <select id="camera_select">
       <option value="">Default</option>
+      <option value="none">None</option>
+    </select>
+    <br /><br />
+
+    Resolution:
+    <select id="resolutionSelect">
+      <option value="0">720 x 480</option>
+      <option value="1" selected>1280 x 720</option>
+      <option value="2">1920 x 1080</option>
     </select>
     <br /><br />
 
@@ -213,7 +233,7 @@
       <option value="EAN_8" selected>EAN_8</option>
       <option value="EAN_13" selected>EAN_13</option>
       <option value="ITF" selected>ITF</option>
-      <option value="PDF_417" selected>PDF_417</option>
+      <option value="PDF417" selected>PDF417</option>
       <option value="QR_CODE" selected>QR_CODE</option>
       <option value="UPC_A" selected>UPC_A</option>
       <option value="UPC_E" selected>UPC_E</option>
@@ -222,7 +242,7 @@
     <input type="checkbox" id="tryHard" checked /><label for="tryHard">Try Hard</label>
     <br />
     <input type="checkbox" id="downscale" checked /><label for="downscale">Downscale Image</label>
-    <div id="useBarcodeDetectorDiv"><input type="checkbox" id="useBarcodeDetector" checked /><label for="useBarcodeDetector">Use BarcodeDetector API</label></div>
+    <div id="useBarcodeDetectorDiv"><input type="checkbox" id="useBarcodeDetector" /><label for="useBarcodeDetector">Use BarcodeDetector API</label></div>
     <br /><br />
 
     <canvas id="canvas" hidden></canvas>
@@ -230,6 +250,7 @@
     <div id="outputMessage">No barcode detected.</div>
     <div hidden><b>Data:</b> <span id="outputData"></span></div>
   </div>
+  <img id="debugImg" src="" />
   </p>
 </body>
 
