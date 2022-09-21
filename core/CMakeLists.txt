@@ -5,7 +5,7 @@ set(ZUECI_STATIC ON CACHE INTERNAL "")
 if (BUILD_SHARED_LIBS)
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 endif()
-zxing_add_package(zueci zueci https://git.code.sf.net/p/libzueci/code master)
+zxing_add_package(zueci zueci https://git.code.sf.net/p/libzueci/code 7f8b276e812e135eaa68c9a6089d373826c63f80)
 
 if (NOT DEFINED BUILD_WRITERS)
     set (BUILD_WRITERS OFF)
