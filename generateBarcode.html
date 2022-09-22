@@ -17,8 +17,8 @@
         var format = urlParams.get("format");
         var charset = urlParams.get("charset") ?? "UTF-8";
         var margin = parseInt(urlParams.get("margin") ?? 0);
-        var width = parseInt(urlParams.get("width") ?? Math.min(document.body.clientWidth, 1024));
-        var height = parseInt(urlParams.get("height") ?? Math.min(document.body.clientHeight, 1024));
+        var width = parseInt(urlParams.get("width") ?? Math.min(document.body.clientWidth-20, 1024));
+        var height = parseInt(urlParams.get("height") ?? Math.min(document.body.clientHeight-20, 1024));
         var eccLevel = parseInt(urlParams.get("ecclevel") ?? -1);
         
         var result;
