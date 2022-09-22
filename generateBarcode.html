@@ -111,9 +111,6 @@ Enter your text here:<br/>
 <script>
 
     var zxing = null;
-    ZXing().then(function(value) {
-        zxing = value;
-    });
     
     function generateBarcode() {
         const urlParams = new URLSearchParams(window.location.search);
@@ -153,8 +150,11 @@ Enter your text here:<br/>
         img.src = "data:image/png;base64," + uint8ArrayToBase64(fileData);
         container.appendChild(img);
     }
-    
-    generateBarcode();
+
+    ZXing().then(function(value) {
+        zxing = value;
+        generateBarcode();
+    });
     </script>
 </body>
 </html>
