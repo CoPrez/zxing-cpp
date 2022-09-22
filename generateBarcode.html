@@ -3,54 +3,6 @@
 <title>ZXing in Javascript demo</title>
 <script src="zxing_writer.js"></script>
 <script src="base64.js"></script>
-<script>
-
-var zxing = null;
-ZXing().then(function(value) {
-    zxing = value;
-});
-
-function generateBarcode() {
-    var text = document.getElementById("input_text").value;
-    var format = document.getElementById("input_format").value;
-    var charset = document.getElementById("input_charset").value;
-    var margin = parseInt(document.getElementById("input_margin").value);
-    var width = parseInt(document.getElementById("input_width").value);
-    var height = parseInt(document.getElementById("input_height").value);
-    var eccLevel = parseInt(document.getElementById("input_ecclevel").value);
-
-    const urlParams = new URLSearchParams(window.location.search);
-    text = urlParams.get("text");
-    
-    var result;
-    if (zxing != null) {
-        result = zxing.generateBarcode(text, format, charset, margin, width, height, eccLevel);
-    } else {
-        result = { error: "ZXing not yet initialized" };
-    }
-    if (result.image) {
-        showImage(document.getElementById("write_result"), result.image);
-        result.delete();
-    }
-    else {
-        var container = document.getElementById("write_result");
-        container.innerHTML = '<font color="red">Error: ' + result.error + '</font>';
-        container.style.width = '200px';
-    }
-}
-
-function showImage(container, fileData) {
-    container.innerHTML = "";
-    var img = document.createElement("img");
-    img.addEventListener('load', function() {
-        container.style.width = img.width + 'px';
-        container.style.height = img.height + 'px';
-    });
-    img.src = "data:image/png;base64," + uint8ArrayToBase64(fileData);
-    container.appendChild(img);
-}
-
-</script>
 <style>
 #input_text {
   width: 220px;
@@ -156,5 +108,53 @@ Enter your text here:<br/>
 <input type="button" value="Generate" onclick="generateBarcode()"/>
 </div>
 <div id="write_result"></div>
+<script>
+
+    var zxing = null;
+    ZXing().then(function(value) {
+        zxing = value;
+    });
+    
+    function generateBarcode() {
+        const urlParams = new URLSearchParams(window.location.search);
+    
+        var text = urlParams.get("text");
+        var format = urlParams.get("format");
+        var charset = urlParams.get("charset") ?? "UTF-8";
+        var margin = parseInt(urlParams.get("margin") ?? 0);
+        var width = parseInt(urlParams.get("width") ?? 200);
+        var height = parseInt(urlParams.get("height")) ?? 200;
+        var eccLevel = parseInt(urlParams.get("ecclevel") ?? -1);
+        
+        var result;
+        if (zxing != null) {
+            result = zxing.generateBarcode(text, format, charset, margin, width, height, eccLevel);
+        } else {
+            result = { error: "ZXing not yet initialized" };
+        }
+        if (result.image) {
+            showImage(document.getElementById("write_result"), result.image);
+            result.delete();
+        }
+        else {
+            var container = document.getElementById("write_result");
+            container.innerHTML = '<font color="red">Error: ' + result.error + '</font>';
+            container.style.width = '200px';
+        }
+    }
+    
+    function showImage(container, fileData) {
+        container.innerHTML = "";
+        var img = document.createElement("img");
+        img.addEventListener('load', function() {
+            container.style.width = img.width + 'px';
+            container.style.height = img.height + 'px';
+        });
+        img.src = "data:image/png;base64," + uint8ArrayToBase64(fileData);
+        container.appendChild(img);
+    }
+    
+    generateBarcode();
+    </script>
 </body>
 </html>
