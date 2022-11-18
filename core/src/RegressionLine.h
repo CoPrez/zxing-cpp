@@ -143,7 +143,12 @@ public:
 
 inline PointF intersect(const RegressionLine& l1, const RegressionLine& l2)
 {
-	assert(l1.isValid() && l2.isValid());
+	// 	Temporary workaround for this github issue: https://github.com/zxing-cpp/zxing-cpp/issues/438
+	//	assert(l1.isValid() && l2.isValid());
+	if(!l1.isValid() || !l2.isValid()){
+		return {-1,-1};
+	}
+	
 	auto d = l1.a * l2.b - l1.b * l2.a;
 	auto x = (l1.c * l2.b - l1.b * l2.c) / d;
 	auto y = (l1.a * l2.c - l1.c * l2.a) / d;

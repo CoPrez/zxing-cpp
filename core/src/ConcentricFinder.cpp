@@ -177,9 +177,13 @@ std::optional<QuadrilateralF> FindConcentricPatternCorners(const BitMatrix& imag
 	std::rotate(outerCorners.begin(), std::min_element(outerCorners.begin(), outerCorners.end(), dist2First), outerCorners.end());
 
 	QuadrilateralF res;
-	for (int i=0; i<4; ++i)
+	for (int i=0; i<4; ++i) {
+		// Temporary workaround for this github issue: https://github.com/zxing-cpp/zxing-cpp/issues/438
+		if ((innerCorners[i].x == -1 && innerCorners[i].y == -1) || (outerCorners[i].x == -1 && outerCorners[i].y == -1)) {
+			return {};
+		}
 		res[i] = (innerCorners[i] + outerCorners[i]) / 2;
-
+	}
 	for (auto p : innerCorners)
 		log(p, 3);
 
