@@ -21,8 +21,10 @@ struct ReadResult
 	ZXing::Position position;
 };
 
-ReadResult readBarcodeFromImageView(ZXing::ImageView iv, bool tryHarder, const std::string& format)
+std::vector<ReadResult> readBarcodesFromImageView(ZXing::ImageView iv, bool tryHarder, const std::string& format, const int maxSymbols)
 {
+	std::vector<ReadResult> results{};
+
 	using namespace ZXing;
 	try {
 		DecodeHints hints;
@@ -31,21 +33,23 @@ ReadResult readBarcodeFromImageView(ZXing::ImageView iv, bool tryHarder, const s
 		hints.setTryInvert(tryHarder);
 		hints.setTryDownscale(tryHarder);
 		hints.setFormats(BarcodeFormatsFromString(format));
-		hints.setMaxNumberOfSymbols(1);
+		hints.setMaxNumberOfSymbols(maxSymbols);
 
-		auto results = ReadBarcodes(iv, hints);
-		if (!results.empty()) {
-			auto& result = results.front();
-			return { ToString(result.format()), result.text(), "", result.position() };
+		auto rawResults = ReadBarcodes(iv, hints);
+		for(int i = 0; i < rawResults.size(); i++)
+		{
+			auto& result = rawResults[i];
+			results.emplace_back(ReadResult{ToString(result.format()), result.text(), "", result.position()});
 		}
 	}
 	catch (const std::exception& e) {
-		return { "", "", e.what() };
+		results.emplace_back(ReadResult{"", "", e.what()});
 	}
 	catch (...) {
-		return { "", "", "Unknown error" };
+		results.emplace_back(ReadResult{"", "", "Unknown error"});
 	}
-	return {};
+
+	return results;
 }
 
 ReadResult readBarcodeFromImage(int bufferPtr, int bufferLength, bool tryHarder, std::string format)
@@ -60,13 +64,31 @@ ReadResult readBarcodeFromImage(int bufferPtr, int bufferLength, bool tryHarder,
 		return {"", "", "Error loading image"};
 	}
 
-	return readBarcodeFromImageView({buffer.get(), width, height, ImageFormat::RGBX}, tryHarder, format);
+	auto results = readBarcodesFromImageView({buffer.get(), width, height, ImageFormat::RGBX}, tryHarder, format, 1);
+	if (results.size() > 0)
+	{
+		return results.front();
+	}
+
+	return {};
 }
 
 ReadResult readBarcodeFromPixmap(int bufferPtr, int imgWidth, int imgHeight, bool tryHarder, std::string format)
 {
 	using namespace ZXing;
-	return readBarcodeFromImageView({reinterpret_cast<uint8_t*>(bufferPtr), imgWidth, imgHeight, ImageFormat::RGBX}, tryHarder, format);
+	auto results = readBarcodesFromImageView({reinterpret_cast<uint8_t*>(bufferPtr), imgWidth, imgHeight, ImageFormat::RGBX}, tryHarder, format, 1);
+	if (results.size() > 0)
+	{
+		return results.front();
+	}
+
+	return {};
+}
+
+std::vector<ReadResult> readBarcodesFromPixmap(int bufferPtr, int imgWidth, int imgHeight, bool tryHarder, std::string format)
+{
+	using namespace ZXing;
+	return readBarcodesFromImageView({reinterpret_cast<uint8_t*>(bufferPtr), imgWidth, imgHeight, ImageFormat::RGBX}, tryHarder, format, 255);
 }
 
 EMSCRIPTEN_BINDINGS(BarcodeReader)
@@ -94,4 +116,7 @@ EMSCRIPTEN_BINDINGS(BarcodeReader)
 
 	function("readBarcodeFromImage", &readBarcodeFromImage);
 	function("readBarcodeFromPixmap", &readBarcodeFromPixmap);
+	function("readBarcodesFromPixmap", &readBarcodesFromPixmap);
+
+	register_vector<ReadResult>("vector<ReadResult>");
 }
